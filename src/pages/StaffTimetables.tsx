@@ -1,7 +1,11 @@
+import { useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, Clock, BookOpen } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Users, Clock, BookOpen, Download } from "lucide-react";
 import { StaffTimetable } from "@/types/timetable";
+import { useReactToPrint } from "react-to-print";
+import { useToast } from "@/hooks/use-toast";
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 const PERIODS = [1, 2, 3, 4, 5, 6, 7, 8];
@@ -11,6 +15,19 @@ interface StaffTimetablesProps {
 }
 
 const StaffTimetables = ({ timetableData }: StaffTimetablesProps) => {
+  const printRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
+
+  const handlePrint = useReactToPrint({
+    contentRef: printRef,
+    documentTitle: "Staff Timetables - EduSchedule",
+    onAfterPrint: () => {
+      toast({
+        title: "Export Complete",
+        description: "Staff timetables have been exported to PDF successfully.",
+      });
+    },
+  });
   if (!timetableData?.staff) {
     return (
       <div className="min-h-screen bg-background p-6">
@@ -38,7 +55,7 @@ const StaffTimetables = ({ timetableData }: StaffTimetablesProps) => {
           <p className="text-muted-foreground text-lg">
             Individual schedules for teaching staff
           </p>
-          <div className="flex justify-center gap-4">
+          <div className="flex justify-center gap-4 flex-wrap">
             <Badge variant="outline" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               {timetableData.staff.length} Staff Members
@@ -47,89 +64,105 @@ const StaffTimetables = ({ timetableData }: StaffTimetablesProps) => {
               <Clock className="h-4 w-4" />
               5 Days × 8 Periods
             </Badge>
+            <Button onClick={handlePrint} className="bg-gradient-primary hover:opacity-90">
+              <Download className="h-4 w-4 mr-2" />
+              Export to PDF
+            </Button>
           </div>
         </div>
 
-        {/* Timetables Grid */}
-        <div className="grid gap-8">
-          {timetableData.staff.map((staffData, index) => {
-            // Calculate teaching load
-            const totalPeriods = staffData.schedule.flat().length;
+        {/* Printable Content */}
+        <div ref={printRef} className="print-content">
+          {/* Print Header */}
+          <div className="print-header hidden print:block mb-8 text-center">
+            <h1 className="text-3xl font-bold mb-2">Staff Timetables</h1>
+            <p className="text-lg text-gray-600">EduSchedule - Academic Year 2024-25</p>
+            <div className="mt-4 text-sm text-gray-500">
+              Generated on: {new Date().toLocaleDateString()}
+            </div>
+          </div>
 
-            return (
-              <Card key={index} className="shadow-card">
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gradient-primary rounded-full flex items-center justify-center text-white font-bold">
-                        {staffData.staffName.charAt(0)}
-                      </div>
-                      <div>
-                        <div className="text-xl">{staffData.staffName}</div>
-                        <div className="text-sm text-muted-foreground font-normal">
-                          Teaching Staff
+          {/* Timetables Grid */}
+          <div className="grid gap-8">
+            {timetableData.staff.map((staffData, index) => {
+              // Calculate teaching load
+              const totalPeriods = staffData.schedule.flat().length;
+
+              return (
+                <Card key={index} className="shadow-card print:shadow-none print:border print:break-inside-avoid">
+                  <CardHeader className="print:pb-4">
+                    <CardTitle className="flex items-center justify-between print:block">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-gradient-primary rounded-full flex items-center justify-center text-white font-bold print:bg-gray-800">
+                          {staffData.staffName.charAt(0)}
+                        </div>
+                        <div>
+                          <div className="text-xl">{staffData.staffName}</div>
+                          <div className="text-sm text-muted-foreground font-normal print:text-gray-600">
+                            Teaching Staff
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <Badge className="flex items-center gap-2">
-                      <BookOpen className="h-4 w-4" />
-                      {totalPeriods} periods/week
-                    </Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse">
-                      <thead>
-                        <tr>
-                          <th className="border border-border p-3 bg-muted font-semibold text-left min-w-[120px]">
-                            Day / Period
-                          </th>
-                          {PERIODS.map(period => (
-                            <th key={period} className="border border-border p-3 bg-muted text-center min-w-[160px]">
-                              <div className="font-semibold">Period {period}</div>
-                              <div className="text-xs text-muted-foreground">
-                                {`${8 + period}:00-${9 + period}:00`}
-                              </div>
+                      <Badge className="flex items-center gap-2 print:hidden">
+                        <BookOpen className="h-4 w-4" />
+                        {totalPeriods} periods/week
+                      </Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="overflow-x-auto">
+                      <table className="w-full border-collapse print:text-sm">
+                        <thead>
+                          <tr>
+                            <th className="border border-border p-3 bg-muted font-semibold text-left min-w-[120px] print:bg-gray-100 print:p-2">
+                              Day / Period
                             </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {DAYS.map((day, dayIndex) => (
-                          <tr key={day} className={dayIndex % 2 === 0 ? 'bg-muted/20' : ''}>
-                            <td className="border border-border p-3 font-medium bg-muted/50">
-                              {day}
-                            </td>
-                            {PERIODS.map(period => {
-                              const slot = staffData.schedule[dayIndex]?.find(s => s.period === period);
-
-                              return (
-                                <td key={period} className="border border-border p-3 text-center">
-                                  {slot ? (
-                                    <div className="space-y-1">
-                                      <div className="font-semibold text-sm">{slot.subject}</div>
-                                      {slot.className && (
-                                        <div className="text-xs text-primary font-medium">
-                                          {slot.className}
-                                        </div>
-                                      )}
-                                    </div>
-                                  ) : (
-                                    <div className="text-muted-foreground text-sm">Not Scheduled</div>
-                                  )}
-                                </td>
-                              );
-                            })}
+                            {PERIODS.map(period => (
+                              <th key={period} className="border border-border p-3 bg-muted text-center min-w-[160px] print:bg-gray-100 print:p-2 print:min-w-[110px]">
+                                <div className="font-semibold">Period {period}</div>
+                                <div className="text-xs text-muted-foreground print:text-gray-600">
+                                  {`${8 + period}:00-${9 + period}:00`}
+                                </div>
+                              </th>
+                            ))}
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+                        </thead>
+                        <tbody>
+                          {DAYS.map((day, dayIndex) => (
+                            <tr key={day} className={dayIndex % 2 === 0 ? "bg-muted/20 print:bg-gray-50" : "print:bg-white"}>
+                              <td className="border border-border p-3 font-medium bg-muted/50 print:bg-gray-100 print:p-2">
+                                {day}
+                              </td>
+                              {PERIODS.map(period => {
+                                const slot = staffData.schedule[dayIndex]?.find(s => s.period === period);
+
+                                return (
+                                  <td key={period} className="border border-border p-3 text-center print:p-2">
+                                    {slot ? (
+                                      <div className="space-y-1">
+                                        <div className="font-semibold text-sm print:text-xs">{slot.subject}</div>
+                                        {slot.className && (
+                                          <div className="text-xs text-primary font-medium print:text-gray-700">
+                                            {slot.className}
+                                          </div>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <div className="text-muted-foreground text-sm print:text-gray-500 print:text-xs">Not Scheduled</div>
+                                    )}
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>

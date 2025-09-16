@@ -4,6 +4,94 @@
 
 /* Time Table Management System Design System - Professional Educational Theme */
 
+/* Print Styles */
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 0.5in;
+  }
+  
+  .print-content {
+    -webkit-print-color-adjust: exact;
+    color-adjust: exact;
+  }
+  
+  .print\:hidden {
+    display: none !important;
+  }
+  
+  .print\:block {
+    display: block !important;
+  }
+  
+  .print\:bg-gray-100 {
+    background-color: #f3f4f6 !important;
+  }
+  
+  .print\:bg-gray-50 {
+    background-color: #f9fafb !important;
+  }
+  
+  .print\:bg-white {
+    background-color: #ffffff !important;
+  }
+  
+  .print\:bg-gray-800 {
+    background-color: #1f2937 !important;
+    color: #ffffff !important;
+  }
+  
+  .print\:text-gray-600 {
+    color: #4b5563 !important;
+  }
+  
+  .print\:text-gray-500 {
+    color: #6b7280 !important;
+  }
+  
+  .print\:text-gray-700 {
+    color: #374151 !important;
+  }
+  
+  .print\:text-xs {
+    font-size: 0.75rem !important;
+    line-height: 1rem !important;
+  }
+  
+  .print\:text-sm {
+    font-size: 0.875rem !important;
+    line-height: 1.25rem !important;
+  }
+  
+  .print\:p-2 {
+    padding: 0.5rem !important;
+  }
+  
+  .print\:pb-4 {
+    padding-bottom: 1rem !important;
+  }
+  
+  .print\:min-w-\[100px\] {
+    min-width: 100px !important;
+  }
+  
+  .print\:min-w-\[110px\] {
+    min-width: 110px !important;
+  }
+  
+  .print\:shadow-none {
+    box-shadow: none !important;
+  }
+  
+  .print\:border {
+    border: 1px solid #d1d5db !important;
+  }
+  
+  .print\:break-inside-avoid {
+    break-inside: avoid !important;
+  }
+}
+
 @layer base {
   :root {
     --background: 210 20% 98%;
