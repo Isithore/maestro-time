@@ -27,7 +27,6 @@ const TimetableGenerator = ({ onTimetableGenerated }: TimetableGeneratorProps) =
   ]);
   const [daysPerWeek] = useState(5);
   const [periodsPerDay] = useState(8);
-  const [breakPeriods] = useState([4]); // 4th period is lunch break
 
   const addSubject = () => {
     const newSubject: Subject = {
@@ -99,7 +98,6 @@ const TimetableGenerator = ({ onTimetableGenerated }: TimetableGeneratorProps) =
       subjects: validSubjects,
       daysPerWeek,
       periodsPerDay,
-      breakPeriods,
     };
 
     try {
@@ -175,7 +173,7 @@ const TimetableGenerator = ({ onTimetableGenerated }: TimetableGeneratorProps) =
                 <Badge variant="secondary">Classes: A-{String.fromCharCode(64 + numClasses)}</Badge>
                 <Badge variant="outline">Monday-Friday</Badge>
                 <Badge variant="outline">8 Periods/Day</Badge>
-                <Badge variant="outline">Period 4: Lunch Break</Badge>
+                <Badge variant="outline">No Free Periods</Badge>
               </div>
             </CardContent>
           </Card>

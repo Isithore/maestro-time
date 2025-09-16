@@ -74,7 +74,7 @@ const StudentTimetables = ({ timetableData }: StudentTimetablesProps) => {
                           <th key={period} className="border border-border p-3 bg-muted text-center min-w-[140px]">
                             <div className="font-semibold">Period {period}</div>
                             <div className="text-xs text-muted-foreground">
-                              {period === 4 ? 'Lunch Break' : `${8 + period}:00-${8 + period + 1}:00`}
+                              {`${8 + period}:00-${9 + period}:00`}
                             </div>
                           </th>
                         ))}
@@ -88,28 +88,19 @@ const StudentTimetables = ({ timetableData }: StudentTimetablesProps) => {
                           </td>
                           {PERIODS.map(period => {
                             const slot = classData.schedule[dayIndex]?.find(s => s.period === period);
-                            const isBreak = slot?.isBreak;
-                            const subject = slot?.subject;
-                            const staff = slot?.staff;
 
                             return (
                               <td key={period} className="border border-border p-3 text-center">
-                                {isBreak ? (
-                                  <div className="text-muted-foreground font-medium">
-                                    Lunch Break
-                                  </div>
-                                ) : subject ? (
+                                {slot ? (
                                   <div className="space-y-1">
-                                    <div className="font-semibold text-sm">{subject}</div>
-                                    {staff && (
-                                      <div className="text-xs text-muted-foreground flex items-center justify-center gap-1">
-                                        <Users className="h-3 w-3" />
-                                        {staff}
-                                      </div>
-                                    )}
+                                    <div className="font-semibold text-sm">{slot.subject}</div>
+                                    <div className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+                                      <Users className="h-3 w-3" />
+                                      {slot.staff}
+                                    </div>
                                   </div>
                                 ) : (
-                                  <div className="text-muted-foreground text-sm">Free</div>
+                                  <div className="text-muted-foreground text-sm">Not Scheduled</div>
                                 )}
                               </td>
                             );

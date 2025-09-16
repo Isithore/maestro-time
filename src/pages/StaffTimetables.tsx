@@ -54,9 +54,7 @@ const StaffTimetables = ({ timetableData }: StaffTimetablesProps) => {
         <div className="grid gap-8">
           {timetableData.staff.map((staffData, index) => {
             // Calculate teaching load
-            const totalPeriods = staffData.schedule.flat().filter(slot => 
-              slot.subject && !slot.isBreak
-            ).length;
+            const totalPeriods = staffData.schedule.flat().length;
 
             return (
               <Card key={index} className="shadow-card">
@@ -91,7 +89,7 @@ const StaffTimetables = ({ timetableData }: StaffTimetablesProps) => {
                             <th key={period} className="border border-border p-3 bg-muted text-center min-w-[160px]">
                               <div className="font-semibold">Period {period}</div>
                               <div className="text-xs text-muted-foreground">
-                                {period === 4 ? 'Lunch Break' : `${8 + period}:00-${8 + period + 1}:00`}
+                                {`${8 + period}:00-${9 + period}:00`}
                               </div>
                             </th>
                           ))}
@@ -105,27 +103,20 @@ const StaffTimetables = ({ timetableData }: StaffTimetablesProps) => {
                             </td>
                             {PERIODS.map(period => {
                               const slot = staffData.schedule[dayIndex]?.find(s => s.period === period);
-                              const isBreak = slot?.isBreak;
-                              const subject = slot?.subject;
-                              const className = slot?.className;
 
                               return (
                                 <td key={period} className="border border-border p-3 text-center">
-                                  {isBreak ? (
-                                    <div className="text-muted-foreground font-medium">
-                                      Lunch Break
-                                    </div>
-                                  ) : subject ? (
+                                  {slot ? (
                                     <div className="space-y-1">
-                                      <div className="font-semibold text-sm">{subject}</div>
-                                      {className && (
+                                      <div className="font-semibold text-sm">{slot.subject}</div>
+                                      {slot.className && (
                                         <div className="text-xs text-primary font-medium">
-                                          {className}
+                                          {slot.className}
                                         </div>
                                       )}
                                     </div>
                                   ) : (
-                                    <div className="text-muted-foreground text-sm">Free</div>
+                                    <div className="text-muted-foreground text-sm">Not Scheduled</div>
                                   )}
                                 </td>
                               );

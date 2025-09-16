@@ -3,101 +3,91 @@ import { GeneratorInput, ClassTimetable, StaffTimetable, TimeSlot, TimetableData
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 
 export function generateTimetable(input: GeneratorInput): TimetableData {
-  const { numClasses, subjects, daysPerWeek, periodsPerDay, breakPeriods } = input;
+  const { numClasses, subjects, daysPerWeek, periodsPerDay } = input;
   
-  // Initialize empty schedules for all classes
+  // Create a comprehensive schedule that fills all periods
   const classSchedules: ClassTimetable[] = [];
+  const staffSchedules = new Map<string, TimeSlot[][]>();
+
+  // Initialize class schedules
   for (let i = 0; i < numClasses; i++) {
-    const className = `Class ${String.fromCharCode(65 + i)}`; // A, B, C, etc.
+    const className = `Class ${String.fromCharCode(65 + i)}`;
     const schedule: TimeSlot[][] = [];
     
     for (let day = 0; day < daysPerWeek; day++) {
-      const daySchedule: TimeSlot[] = [];
-      for (let period = 1; period <= periodsPerDay; period++) {
-        if (breakPeriods.includes(period)) {
-          daySchedule.push({
-            day: DAYS[day],
-            period,
-            isBreak: true,
-            className
-          });
-        } else {
-          daySchedule.push({
-            day: DAYS[day],
-            period,
-            className
-          });
-        }
-      }
-      schedule.push(daySchedule);
+      schedule.push([]);
     }
     
     classSchedules.push({ className, schedule });
   }
 
-  // Track staff availability
-  const staffSchedules = new Map<string, TimeSlot[][]>();
-  
   // Initialize staff schedules
+  const allStaff = new Set<string>();
   subjects.forEach(subject => {
     subject.staff.forEach(staffMember => {
-      if (!staffSchedules.has(staffMember)) {
-        const schedule: TimeSlot[][] = [];
-        for (let day = 0; day < daysPerWeek; day++) {
-          const daySchedule: TimeSlot[] = [];
-          for (let period = 1; period <= periodsPerDay; period++) {
-            if (breakPeriods.includes(period)) {
-              daySchedule.push({
-                day: DAYS[day],
-                period,
-                isBreak: true
-              });
-            } else {
-              daySchedule.push({
-                day: DAYS[day],
-                period
-              });
-            }
-          }
-          schedule.push(daySchedule);
-        }
-        staffSchedules.set(staffMember, schedule);
+      if (staffMember.trim()) {
+        allStaff.add(staffMember);
       }
     });
   });
 
-  // Simple allocation algorithm
-  // First, place lab subjects (they need consecutive periods)
-  const labSubjects = subjects.filter(s => s.isLab);
-  const regularSubjects = subjects.filter(s => !s.isLab);
+  allStaff.forEach(staffMember => {
+    const schedule: TimeSlot[][] = [];
+    for (let day = 0; day < daysPerWeek; day++) {
+      schedule.push([]);
+    }
+    staffSchedules.set(staffMember, schedule);
+  });
 
-  // Allocate lab subjects first
-  labSubjects.forEach(subject => {
-    for (let classIndex = 0; classIndex < numClasses; classIndex++) {
-      const classSchedule = classSchedules[classIndex];
+  // Create a pool of all available time slots for each class
+  const totalPeriodsNeeded = daysPerWeek * periodsPerDay;
+  const validSubjects = subjects.filter(s => s.name.trim() && s.staff.some(staff => staff.trim()));
+  
+  if (validSubjects.length === 0) {
+    throw new Error('No valid subjects provided');
+  }
+
+  // For each class, generate a complete schedule
+  for (let classIndex = 0; classIndex < numClasses; classIndex++) {
+    const classSchedule = classSchedules[classIndex];
+    const periodsToFill: { day: number; period: number }[] = [];
+    
+    // Create all period slots
+    for (let day = 0; day < daysPerWeek; day++) {
+      for (let period = 1; period <= periodsPerDay; period++) {
+        periodsToFill.push({ day, period });
+      }
+    }
+
+    // First, place lab subjects (need consecutive periods)
+    const labSubjects = validSubjects.filter(s => s.isLab);
+    
+    for (const subject of labSubjects) {
       let placed = false;
-
+      
       for (let day = 0; day < daysPerWeek && !placed; day++) {
-        for (let period = 0; period < periodsPerDay - subject.duration + 1 && !placed; period++) {
-          // Check if consecutive periods are available
+        // Try to find consecutive periods for labs
+        for (let startPeriod = 1; startPeriod <= periodsPerDay - subject.duration + 1 && !placed; startPeriod++) {
+          // Check if all required consecutive periods are available
           let canPlace = true;
           for (let dur = 0; dur < subject.duration; dur++) {
-            const slot = classSchedule.schedule[day][period + dur];
-            if (slot.isBreak || slot.subject) {
+            const periodIndex = periodsToFill.findIndex(p => p.day === day && p.period === startPeriod + dur);
+            if (periodIndex === -1) {
               canPlace = false;
               break;
             }
           }
-
+          
           if (canPlace) {
-            // Check staff availability
+            // Find available staff for this time slot
             const availableStaff = subject.staff.find(staffMember => {
+              if (!staffMember.trim()) return false;
               const staffSchedule = staffSchedules.get(staffMember)!;
+              
+              // Check if staff is free for all required consecutive periods
               for (let dur = 0; dur < subject.duration; dur++) {
-                const staffSlot = staffSchedule[day][period + dur];
-                if (staffSlot.isBreak || staffSlot.subject) {
-                  return false;
-                }
+                const existingSlot = staffSchedule[day].find(slot => slot.period === startPeriod + dur);
+                if (existingSlot) return false;
               }
               return true;
             });
@@ -105,12 +95,31 @@ export function generateTimetable(input: GeneratorInput): TimetableData {
             if (availableStaff) {
               // Place the lab subject
               for (let dur = 0; dur < subject.duration; dur++) {
-                classSchedule.schedule[day][period + dur].subject = subject.name;
-                classSchedule.schedule[day][period + dur].staff = availableStaff;
+                const currentPeriod = startPeriod + dur;
+                const slot: TimeSlot = {
+                  day: DAYS[day],
+                  period: currentPeriod,
+                  subject: subject.name,
+                  staff: availableStaff,
+                  className: classSchedule.className
+                };
+
+                classSchedule.schedule[day].push(slot);
                 
                 const staffSchedule = staffSchedules.get(availableStaff)!;
-                staffSchedule[day][period + dur].subject = `${subject.name} (${classSchedule.className})`;
-                staffSchedule[day][period + dur].className = classSchedule.className;
+                staffSchedule[day].push({
+                  day: DAYS[day],
+                  period: currentPeriod,
+                  subject: `${subject.name} (${classSchedule.className})`,
+                  staff: availableStaff,
+                  className: classSchedule.className
+                });
+
+                // Remove this period from available periods
+                const periodIndex = periodsToFill.findIndex(p => p.day === day && p.period === currentPeriod);
+                if (periodIndex !== -1) {
+                  periodsToFill.splice(periodIndex, 1);
+                }
               }
               placed = true;
             }
@@ -118,44 +127,57 @@ export function generateTimetable(input: GeneratorInput): TimetableData {
         }
       }
     }
-  });
 
-  // Allocate regular subjects
-  regularSubjects.forEach(subject => {
-    for (let classIndex = 0; classIndex < numClasses; classIndex++) {
-      const classSchedule = classSchedules[classIndex];
-      const periodsNeeded = Math.ceil(30 / daysPerWeek); // Rough distribution
+    // Fill remaining periods with regular subjects
+    const regularSubjects = validSubjects.filter(s => !s.isLab);
+    
+    for (const { day, period } of periodsToFill) {
+      // Distribute subjects evenly
+      const subjectIndex = ((day * periodsPerDay + period - 1) % regularSubjects.length);
+      const subject = regularSubjects[subjectIndex] || regularSubjects[0];
+      
+      // Find available staff
+      const availableStaff = subject.staff.find(staffMember => {
+        if (!staffMember.trim()) return false;
+        const staffSchedule = staffSchedules.get(staffMember)!;
+        return !staffSchedule[day].find(slot => slot.period === period);
+      }) || subject.staff.find(staff => staff.trim()) || 'Unassigned';
 
-      let periodsAllocated = 0;
-      for (let day = 0; day < daysPerWeek && periodsAllocated < periodsNeeded; day++) {
-        for (let period = 0; period < periodsPerDay && periodsAllocated < periodsNeeded; period++) {
-          const slot = classSchedule.schedule[day][period];
-          
-          if (!slot.isBreak && !slot.subject) {
-            // Check staff availability
-            const availableStaff = subject.staff.find(staffMember => {
-              const staffSchedule = staffSchedules.get(staffMember)!;
-              const staffSlot = staffSchedule[day][period];
-              return !staffSlot.isBreak && !staffSlot.subject;
-            });
+      const slot: TimeSlot = {
+        day: DAYS[day],
+        period,
+        subject: subject.name,
+        staff: availableStaff,
+        className: classSchedule.className
+      };
 
-            if (availableStaff) {
-              slot.subject = subject.name;
-              slot.staff = availableStaff;
-              
-              const staffSchedule = staffSchedules.get(availableStaff)!;
-              staffSchedule[day][period].subject = `${subject.name} (${classSchedule.className})`;
-              staffSchedule[day][period].className = classSchedule.className;
-              
-              periodsAllocated++;
-            }
-          }
-        }
+      classSchedule.schedule[day].push(slot);
+      
+      if (staffSchedules.has(availableStaff)) {
+        const staffSchedule = staffSchedules.get(availableStaff)!;
+        staffSchedule[day].push({
+          day: DAYS[day],
+          period,
+          subject: `${subject.name} (${classSchedule.className})`,
+          staff: availableStaff,
+          className: classSchedule.className
+        });
       }
     }
+
+    // Sort each day's schedule by period
+    classSchedule.schedule.forEach(daySchedule => {
+      daySchedule.sort((a, b) => a.period - b.period);
+    });
+  }
+
+  // Sort staff schedules by period
+  staffSchedules.forEach(schedule => {
+    schedule.forEach(daySchedule => {
+      daySchedule.sort((a, b) => a.period - b.period);
+    });
   });
 
-  // Convert staff schedules to the required format
   const staffTimetables: StaffTimetable[] = Array.from(staffSchedules.entries()).map(
     ([staffName, schedule]) => ({ staffName, schedule })
   );

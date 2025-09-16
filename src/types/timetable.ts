@@ -9,9 +9,8 @@ export interface Subject {
 export interface TimeSlot {
   day: string;
   period: number;
-  subject?: string;
-  staff?: string;
-  isBreak?: boolean;
+  subject: string;
+  staff: string;
   className?: string;
 }
 
@@ -35,5 +34,4 @@ export interface GeneratorInput {
   subjects: Subject[];
   daysPerWeek: number;
   periodsPerDay: number;
-  breakPeriods: number[];
 }
