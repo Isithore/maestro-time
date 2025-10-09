@@ -2,6 +2,21 @@ import { GeneratorInput, ClassTimetable, StaffTimetable, TimeSlot, TimetableData
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 
+const TIME_SLOTS = [
+  '08:00 AM-09:00 AM',
+  '09:00 AM-09:50 AM',
+  '10:10 AM-11:00 AM',
+  '11:00 AM-11:50 AM',
+  '11:50 AM-12:40 PM',
+  '01:30 PM-02:20 PM',
+  '02:20 PM-03:10 PM',
+  '03:10 PM-04:00 PM'
+];
+
+function getTimeRange(period: number): string {
+  return TIME_SLOTS[period - 1] || `Period ${period}`;
+}
+
 export function generateTimetable(input: GeneratorInput): TimetableData {
   const { numClasses, subjects, daysPerWeek, periodsPerDay } = input;
   
@@ -99,7 +114,9 @@ export function generateTimetable(input: GeneratorInput): TimetableData {
                 const slot: TimeSlot = {
                   day: DAYS[day],
                   period: currentPeriod,
+                  timeRange: getTimeRange(currentPeriod),
                   subject: subject.name,
+                  subjectCode: subject.code,
                   staff: availableStaff,
                   className: classSchedule.className
                 };
@@ -110,7 +127,9 @@ export function generateTimetable(input: GeneratorInput): TimetableData {
                 staffSchedule[day].push({
                   day: DAYS[day],
                   period: currentPeriod,
+                  timeRange: getTimeRange(currentPeriod),
                   subject: `${subject.name} (${classSchedule.className})`,
+                  subjectCode: subject.code,
                   staff: availableStaff,
                   className: classSchedule.className
                 });
@@ -146,7 +165,9 @@ export function generateTimetable(input: GeneratorInput): TimetableData {
       const slot: TimeSlot = {
         day: DAYS[day],
         period,
+        timeRange: getTimeRange(period),
         subject: subject.name,
+        subjectCode: subject.code,
         staff: availableStaff,
         className: classSchedule.className
       };
@@ -158,7 +179,9 @@ export function generateTimetable(input: GeneratorInput): TimetableData {
         staffSchedule[day].push({
           day: DAYS[day],
           period,
+          timeRange: getTimeRange(period),
           subject: `${subject.name} (${classSchedule.className})`,
+          subjectCode: subject.code,
           staff: availableStaff,
           className: classSchedule.className
         });

@@ -21,9 +21,9 @@ const TimetableGenerator = ({ onTimetableGenerated }: TimetableGeneratorProps) =
   
   const [numClasses, setNumClasses] = useState(3);
   const [subjects, setSubjects] = useState<Subject[]>([
-    { id: '1', name: 'Mathematics', staff: ['Mr. Smith'], isLab: false, duration: 1 },
-    { id: '2', name: 'Physics', staff: ['Dr. Johnson'], isLab: false, duration: 1 },
-    { id: '3', name: 'Chemistry Lab', staff: ['Ms. Davis'], isLab: true, duration: 2 },
+    { id: '1', name: 'Mathematics', code: 'MATH101', staff: ['Mr. Smith'], isLab: false, duration: 1 },
+    { id: '2', name: 'Physics', code: 'PHY101', staff: ['Dr. Johnson'], isLab: false, duration: 1 },
+    { id: '3', name: 'Chemistry Lab', code: 'CHEM102', staff: ['Ms. Davis'], isLab: true, duration: 2 },
   ]);
   const [daysPerWeek] = useState(5);
   const [periodsPerDay] = useState(8);
@@ -32,6 +32,7 @@ const TimetableGenerator = ({ onTimetableGenerated }: TimetableGeneratorProps) =
     const newSubject: Subject = {
       id: Date.now().toString(),
       name: '',
+      code: '',
       staff: [''],
       isLab: false,
       duration: 1,
@@ -194,13 +195,19 @@ const TimetableGenerator = ({ onTimetableGenerated }: TimetableGeneratorProps) =
                 <div key={subject.id} className="bg-muted/50 rounded-lg p-4 space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex-1 space-y-2">
-                      <div className="flex items-center gap-4">
+                      <div className="grid grid-cols-2 gap-2 mb-2">
                         <Input
                           placeholder="Subject name"
                           value={subject.name}
                           onChange={(e) => updateSubject(subject.id, { name: e.target.value })}
-                          className="flex-1"
                         />
+                        <Input
+                          placeholder="Course code (e.g., CS3591)"
+                          value={subject.code}
+                          onChange={(e) => updateSubject(subject.id, { code: e.target.value })}
+                        />
+                      </div>
+                      <div className="flex items-center gap-4">
                         <div className="flex items-center space-x-2">
                           <Checkbox
                             id={`lab-${subject.id}`}
@@ -216,21 +223,21 @@ const TimetableGenerator = ({ onTimetableGenerated }: TimetableGeneratorProps) =
                             Lab Subject
                           </Label>
                         </div>
-                        {subject.isLab && (
-                          <div className="flex items-center gap-2">
-                            <Label className="text-sm">Duration:</Label>
-                            <Input
-                              type="number"
-                              min="2"
-                              max="4"
-                              value={subject.duration}
-                              onChange={(e) => updateSubject(subject.id, { duration: parseInt(e.target.value) || 2 })}
-                              className="w-20"
-                            />
-                            <span className="text-sm text-muted-foreground">periods</span>
-                          </div>
-                        )}
                       </div>
+                      {subject.isLab && (
+                        <div className="flex items-center gap-2">
+                          <Label className="text-sm">Duration:</Label>
+                          <Input
+                            type="number"
+                            min="2"
+                            max="4"
+                            value={subject.duration}
+                            onChange={(e) => updateSubject(subject.id, { duration: parseInt(e.target.value) || 2 })}
+                            className="w-20"
+                          />
+                          <span className="text-sm text-muted-foreground">periods</span>
+                        </div>
+                      )}
                     </div>
                     
                     <Button

@@ -1,151 +1,221 @@
-import { useRef } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { GraduationCap, Clock, Users, Download } from "lucide-react";
-import { ClassTimetable } from "@/types/timetable";
-import { useReactToPrint } from "react-to-print";
-import { useToast } from "@/hooks/use-toast";
-
-const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-const PERIODS = [1, 2, 3, 4, 5, 6, 7, 8];
+import { useRef } from 'react';
+import { useReactToPrint } from 'react-to-print';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { TimetableData } from '@/types/timetable';
+import { FileDown, Calendar } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 interface StudentTimetablesProps {
-  timetableData?: { classes: ClassTimetable[] };
+  timetableData: TimetableData | null;
 }
 
 const StudentTimetables = ({ timetableData }: StudentTimetablesProps) => {
-  const printRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const printRef = useRef<HTMLDivElement>(null);
 
   const handlePrint = useReactToPrint({
     contentRef: printRef,
-    documentTitle: "Student Timetables - EduSchedule",
+    documentTitle: 'Student-Timetables',
     onAfterPrint: () => {
       toast({
-        title: "Export Complete",
-        description: "Student timetables have been exported to PDF successfully.",
+        title: 'Success!',
+        description: 'Timetable exported to PDF successfully.',
       });
     },
   });
-  if (!timetableData?.classes) {
+
+  if (!timetableData) {
     return (
-      <div className="min-h-screen bg-background p-6">
-        <div className="max-w-7xl mx-auto text-center py-20">
-          <div className="space-y-4">
-            <GraduationCap className="h-16 w-16 text-muted-foreground mx-auto" />
-            <h2 className="text-2xl font-bold text-muted-foreground">No Timetable Available</h2>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Card className="max-w-md">
+          <CardHeader>
+            <CardTitle>No Timetable Available</CardTitle>
+          </CardHeader>
+          <CardContent>
             <p className="text-muted-foreground">
-              Please generate a timetable first from the Generator page.
+              Please generate a timetable first from the generator page.
             </p>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
+  const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+
+  // Get unique subjects for legend
+  const subjectMap = new Map<string, { name: string; code: string; staff: Set<string> }>();
+  
+  timetableData.classes.forEach(classData => {
+    classData.schedule.forEach(daySchedule => {
+      daySchedule.forEach(slot => {
+        if (slot.subjectCode) {
+          if (!subjectMap.has(slot.subjectCode)) {
+            subjectMap.set(slot.subjectCode, {
+              name: slot.subject,
+              code: slot.subjectCode,
+              staff: new Set([slot.staff])
+            });
+          } else {
+            subjectMap.get(slot.subjectCode)?.staff.add(slot.staff);
+          }
+        }
+      });
+    });
+  });
+
   return (
     <div className="min-h-screen bg-background p-6">
-      <div className="max-w-7xl mx-auto space-y-8">
+      <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="text-center space-y-4">
-          <div className="bg-gradient-hero bg-clip-text text-transparent">
-            <h1 className="text-4xl font-bold">Student Timetables</h1>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold bg-gradient-hero bg-clip-text text-transparent">
+              Student Class Timetables
+            </h1>
+            <p className="text-muted-foreground mt-2">
+              {timetableData.classes.length} classes • 5 days/week • 8 periods/day
+            </p>
           </div>
-          <p className="text-muted-foreground text-lg">
-            Class schedules for all students
-          </p>
-          <div className="flex justify-center gap-4 flex-wrap">
-            <Badge variant="outline" className="flex items-center gap-2">
-              <GraduationCap className="h-4 w-4" />
-              {timetableData.classes.length} Classes
-            </Badge>
-            <Badge variant="outline" className="flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              5 Days × 8 Periods
-            </Badge>
-            <Button onClick={handlePrint} className="bg-gradient-primary hover:opacity-90">
-              <Download className="h-4 w-4 mr-2" />
-              Export to PDF
-            </Button>
-          </div>
+          <Button onClick={handlePrint} size="lg" className="shadow-elevated">
+            <FileDown className="h-5 w-5 mr-2" />
+            Export to PDF
+          </Button>
         </div>
 
         {/* Printable Content */}
-        <div ref={printRef} className="print-content">
-          {/* Print Header */}
-          <div className="print-header hidden print:block mb-8 text-center">
-            <h1 className="text-3xl font-bold mb-2">Student Timetables</h1>
-            <p className="text-lg text-gray-600">EduSchedule - Academic Year 2024-25</p>
-            <div className="mt-4 text-sm text-gray-500">
-              Generated on: {new Date().toLocaleDateString()}
-            </div>
-          </div>
+        <div ref={printRef} className="space-y-8">
+          {timetableData.classes.map((classData, idx) => (
+            <Card key={idx} className="shadow-card print:shadow-none print:break-after-page">
+              <CardHeader className="bg-gradient-card print:bg-white">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-2xl flex items-center gap-2 print:text-foreground">
+                      <Calendar className="h-6 w-6 text-primary print:hidden" />
+                      {classData.className}
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground mt-1 print:text-gray-600">
+                      Complete Weekly Schedule
+                    </p>
+                  </div>
+                  <div className="print:block hidden text-right text-sm">
+                    <p className="font-semibold">LOYOLA-ICAM</p>
+                    <p>COLLEGE OF ENGINEERING AND TECHNOLOGY</p>
+                    <p className="text-xs text-muted-foreground">Academic Year: 2025-26</p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="overflow-x-auto">
+                  <Table className="border">
+                    <TableHeader>
+                      <TableRow className="bg-muted">
+                        <TableHead className="font-bold border text-center w-32">Day / Period</TableHead>
+                        {[1, 2, 3, 4, 5, 6, 7, 8].map((period) => (
+                          <TableHead key={period} className="font-bold border text-center min-w-[120px]">
+                            {period}
+                          </TableHead>
+                        ))}
+                      </TableRow>
+                      <TableRow className="bg-muted/50">
+                        <TableHead className="border text-center text-xs">Time</TableHead>
+                        <TableHead className="border text-center text-xs">08:00-09:00</TableHead>
+                        <TableHead className="border text-center text-xs">09:00-09:50</TableHead>
+                        <TableHead className="border text-center text-xs bg-yellow-50 print:bg-gray-100">BREAK</TableHead>
+                        <TableHead className="border text-center text-xs">10:10-11:00</TableHead>
+                        <TableHead className="border text-center text-xs">11:00-11:50</TableHead>
+                        <TableHead className="border text-center text-xs">11:50-12:40</TableHead>
+                        <TableHead className="border text-center text-xs bg-orange-50 print:bg-gray-100">LUNCH</TableHead>
+                        <TableHead className="border text-center text-xs">01:30-02:20</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {DAYS.map((day, dayIndex) => {
+                        const daySchedule = classData.schedule[dayIndex] || [];
+                        const periods = Array(8).fill(null).map((_, periodIdx) => {
+                          return daySchedule.find(slot => slot.period === periodIdx + 1);
+                        });
 
-          {/* Timetables Grid */}
-          <div className="grid gap-8">
-            {timetableData.classes.map((classData, index) => (
-              <Card key={index} className="shadow-card print:shadow-none print:border print:break-inside-avoid">
-                <CardHeader className="print:pb-4">
-                  <CardTitle className="flex items-center gap-2 text-xl">
-                    <div className="w-10 h-10 bg-gradient-primary rounded-full flex items-center justify-center text-white font-bold print:bg-gray-800">
-                      {classData.className.split(" ")[1]}
-                    </div>
-                    {classData.className}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse print:text-sm">
-                      <thead>
-                        <tr>
-                          <th className="border border-border p-3 bg-muted font-semibold text-left min-w-[120px] print:bg-gray-100 print:p-2">
-                            Day / Period
-                          </th>
-                          {PERIODS.map(period => (
-                            <th key={period} className="border border-border p-3 bg-muted text-center min-w-[140px] print:bg-gray-100 print:p-2 print:min-w-[100px]">
-                              <div className="font-semibold">Period {period}</div>
-                              <div className="text-xs text-muted-foreground print:text-gray-600">
-                                {`${8 + period}:00-${9 + period}:00`}
-                              </div>
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {DAYS.map((day, dayIndex) => (
-                          <tr key={day} className={dayIndex % 2 === 0 ? "bg-muted/20 print:bg-gray-50" : "print:bg-white"}>
-                            <td className="border border-border p-3 font-medium bg-muted/50 print:bg-gray-100 print:p-2">
-                              {day}
-                            </td>
-                            {PERIODS.map(period => {
-                              const slot = classData.schedule[dayIndex]?.find(s => s.period === period);
-
+                        return (
+                          <TableRow key={day}>
+                            <TableCell className="font-semibold border bg-muted">{day.substring(0, 3).toUpperCase()}</TableCell>
+                            {periods.map((slot, periodIdx) => {
+                              const period = periodIdx + 1;
+                              const isBreak = period === 3;
+                              const isLunch = period === 7;
+                              
+                              if (isBreak) {
+                                return (
+                                  <TableCell key={periodIdx} className="border text-center bg-yellow-50 print:bg-gray-100">
+                                    <div className="font-semibold text-xs">BREAK</div>
+                                  </TableCell>
+                                );
+                              }
+                              
+                              if (isLunch) {
+                                return (
+                                  <TableCell key={periodIdx} className="border text-center bg-orange-50 print:bg-gray-100">
+                                    <div className="font-semibold text-xs">LUNCH</div>
+                                  </TableCell>
+                                );
+                              }
+                              
+                              if (slot) {
+                                return (
+                                  <TableCell key={periodIdx} className="border text-center p-2">
+                                    <div className="font-semibold text-sm">{slot.subjectCode}</div>
+                                    <div className="text-xs text-muted-foreground print:text-gray-600">[{slot.subject}]</div>
+                                  </TableCell>
+                                );
+                              }
+                              
                               return (
-                                <td key={period} className="border border-border p-3 text-center print:p-2">
-                                  {slot ? (
-                                    <div className="space-y-1">
-                                      <div className="font-semibold text-sm print:text-xs">{slot.subject}</div>
-                                      <div className="text-xs text-muted-foreground flex items-center justify-center gap-1 print:text-gray-600">
-                                        <Users className="h-3 w-3 print:hidden" />
-                                        <span className="print:text-xs">{slot.staff}</span>
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    <div className="text-muted-foreground text-sm print:text-gray-500 print:text-xs">Not Scheduled</div>
-                                  )}
-                                </td>
+                                <TableCell key={periodIdx} className="border text-center">
+                                  <span className="text-xs text-muted-foreground">-</span>
+                                </TableCell>
                               );
                             })}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Course Legend */}
+                <div className="mt-6 border-t pt-4">
+                  <h3 className="font-semibold mb-3">Course Details:</h3>
+                  <Table className="border">
+                    <TableHeader>
+                      <TableRow className="bg-muted">
+                        <TableHead className="border font-bold">Course Code</TableHead>
+                        <TableHead className="border font-bold">Course Name</TableHead>
+                        <TableHead className="border font-bold">Faculty Name</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {Array.from(subjectMap.entries()).map(([code, info]) => (
+                        <TableRow key={code}>
+                          <TableCell className="border font-medium">{code}</TableCell>
+                          <TableCell className="border">{info.name}</TableCell>
+                          <TableCell className="border">{Array.from(info.staff).join(', ')}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       </div>
     </div>
