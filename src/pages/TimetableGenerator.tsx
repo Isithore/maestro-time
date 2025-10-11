@@ -5,6 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Plus, Trash2, Calendar, Users, BookOpen } from "lucide-react";
 import { Subject, GeneratorInput } from "@/types/timetable";
 import { generateTimetable } from "@/utils/timetableGenerator";
@@ -23,8 +30,19 @@ const TimetableGenerator = ({ onTimetableGenerated }: TimetableGeneratorProps) =
   const [selectedDepartments, setSelectedDepartments] = useState<string[]>(['CSE']);
   const [yearsPerDepartment] = useState(4);
   const [sectionsPerYear, setSectionsPerYear] = useState(1);
+  
+  // Staff Management
+  const [staffList, setStaffList] = useState<string[]>([
+    'Dr. Smith',
+    'Dr. Johnson',
+    'Ms. Davis',
+    'Prof. Williams',
+    'Dr. Brown'
+  ]);
+  const [newStaffName, setNewStaffName] = useState('');
+  
   const [subjects, setSubjects] = useState<Subject[]>([
-    { id: '1', name: 'Mathematics', code: 'MATH101', staff: ['Mr. Smith'], isLab: false, duration: 1 },
+    { id: '1', name: 'Mathematics', code: 'MATH101', staff: ['Dr. Smith'], isLab: false, duration: 1 },
     { id: '2', name: 'Physics', code: 'PHY101', staff: ['Dr. Johnson'], isLab: false, duration: 1 },
     { id: '3', name: 'Chemistry Lab', code: 'CHEM102', staff: ['Ms. Davis'], isLab: true, duration: 2 },
   ]);
@@ -53,8 +71,10 @@ const TimetableGenerator = ({ onTimetableGenerated }: TimetableGeneratorProps) =
 
   const addStaffMember = (subjectId: string) => {
     const subject = subjects.find(s => s.id === subjectId);
-    if (subject) {
-      updateSubject(subjectId, { staff: [...subject.staff, ''] });
+    if (subject && staffList.length > 0) {
+      // Add first available staff member not already assigned
+      const availableStaff = staffList.find(s => !subject.staff.includes(s)) || staffList[0];
+      updateSubject(subjectId, { staff: [...subject.staff, availableStaff] });
     }
   };
 
@@ -81,6 +101,38 @@ const TimetableGenerator = ({ onTimetableGenerated }: TimetableGeneratorProps) =
         ? prev.filter(d => d !== dept)
         : [...prev, dept]
     );
+  };
+
+  // Staff Management Functions
+  const addStaffToList = () => {
+    const trimmedName = newStaffName.trim();
+    if (trimmedName && !staffList.includes(trimmedName)) {
+      setStaffList([...staffList, trimmedName]);
+      setNewStaffName('');
+      toast({
+        title: "Success",
+        description: `${trimmedName} added to staff list.`,
+      });
+    } else if (staffList.includes(trimmedName)) {
+      toast({
+        title: "Error",
+        description: "This staff member already exists.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const removeStaffFromList = (staffName: string) => {
+    setStaffList(staffList.filter(s => s !== staffName));
+    // Also remove from subjects
+    setSubjects(subjects.map(subject => ({
+      ...subject,
+      staff: subject.staff.filter(s => s !== staffName)
+    })));
+    toast({
+      title: "Removed",
+      description: `${staffName} removed from staff list.`,
+    });
   };
 
   const handleGenerate = () => {
@@ -224,6 +276,66 @@ const TimetableGenerator = ({ onTimetableGenerated }: TimetableGeneratorProps) =
             </CardContent>
           </Card>
 
+          {/* Staff Management */}
+          <Card className="shadow-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5 text-primary" />
+                Staff Management
+              </CardTitle>
+              <CardDescription>
+                Manage your college staff list for easy assignment to subjects
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Add New Staff */}
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Enter staff name (e.g., Dr. John Smith)"
+                  value={newStaffName}
+                  onChange={(e) => setNewStaffName(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && addStaffToList()}
+                  className="flex-1"
+                />
+                <Button onClick={addStaffToList} disabled={!newStaffName.trim()}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Staff
+                </Button>
+              </div>
+
+              {/* Staff List */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">
+                  Staff List ({staffList.length} members)
+                </Label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-64 overflow-y-auto p-2 border rounded-lg bg-muted/30">
+                  {staffList.length === 0 ? (
+                    <p className="text-sm text-muted-foreground col-span-2 text-center py-4">
+                      No staff members added yet. Add staff to assign them to subjects.
+                    </p>
+                  ) : (
+                    staffList.map((staff, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between bg-background p-2 rounded border"
+                      >
+                        <span className="text-sm font-medium">{staff}</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeStaffFromList(staff)}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Subjects */}
           <Card className="shadow-card">
             <CardHeader>
@@ -303,12 +415,27 @@ const TimetableGenerator = ({ onTimetableGenerated }: TimetableGeneratorProps) =
                     <div className="space-y-2">
                       {subject.staff.map((staff, index) => (
                         <div key={index} className="flex gap-2">
-                          <Input
-                            placeholder="Staff member name"
+                          <Select
                             value={staff}
-                            onChange={(e) => updateStaffMember(subject.id, index, e.target.value)}
-                            className="flex-1"
-                          />
+                            onValueChange={(value) => updateStaffMember(subject.id, index, value)}
+                          >
+                            <SelectTrigger className="flex-1">
+                              <SelectValue placeholder="Select staff member" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {staffList.length === 0 ? (
+                                <div className="p-2 text-sm text-muted-foreground text-center">
+                                  No staff available. Add staff first.
+                                </div>
+                              ) : (
+                                staffList.map((staffMember) => (
+                                  <SelectItem key={staffMember} value={staffMember}>
+                                    {staffMember}
+                                  </SelectItem>
+                                ))
+                              )}
+                            </SelectContent>
+                          </Select>
                           {subject.staff.length > 1 && (
                             <Button
                               variant="outline"
@@ -325,10 +452,16 @@ const TimetableGenerator = ({ onTimetableGenerated }: TimetableGeneratorProps) =
                         size="sm"
                         onClick={() => addStaffMember(subject.id)}
                         className="w-full"
+                        disabled={staffList.length === 0}
                       >
                         <Plus className="h-4 w-4 mr-2" />
                         Add Staff Member
                       </Button>
+                      {staffList.length === 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          Add staff members above to assign them here
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
