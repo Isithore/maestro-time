@@ -19,7 +19,8 @@ const TimetableGenerator = ({ onTimetableGenerated }: TimetableGeneratorProps) =
   const navigate = useNavigate();
   const { toast } = useToast();
   
-  const [departments] = useState(['CSE', 'IT', 'MECH', 'EEE', 'ECE', 'AIDS']);
+  const AVAILABLE_DEPARTMENTS = ['CSE', 'IT', 'MECH', 'EEE', 'ECE', 'AIDS'];
+  const [selectedDepartments, setSelectedDepartments] = useState<string[]>(['CSE']);
   const [yearsPerDepartment] = useState(4);
   const [sectionsPerYear, setSectionsPerYear] = useState(1);
   const [subjects, setSubjects] = useState<Subject[]>([
@@ -74,8 +75,25 @@ const TimetableGenerator = ({ onTimetableGenerated }: TimetableGeneratorProps) =
     }
   };
 
+  const toggleDepartment = (dept: string) => {
+    setSelectedDepartments(prev => 
+      prev.includes(dept) 
+        ? prev.filter(d => d !== dept)
+        : [...prev, dept]
+    );
+  };
+
   const handleGenerate = () => {
     // Validation
+    if (selectedDepartments.length === 0) {
+      toast({
+        title: "Error",
+        description: "Please select at least one department.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     const validSubjects = subjects.filter(s => s.name.trim() && s.staff.some(staff => staff.trim()));
     
     if (validSubjects.length === 0) {
@@ -88,7 +106,7 @@ const TimetableGenerator = ({ onTimetableGenerated }: TimetableGeneratorProps) =
     }
 
     const input: GeneratorInput = {
-      departments,
+      departments: selectedDepartments,
       yearsPerDepartment,
       sectionsPerYear,
       subjects: validSubjects,
@@ -143,6 +161,36 @@ const TimetableGenerator = ({ onTimetableGenerated }: TimetableGeneratorProps) =
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">Select Departments</Label>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {AVAILABLE_DEPARTMENTS.map(dept => (
+                    <div
+                      key={dept}
+                      onClick={() => toggleDepartment(dept)}
+                      className={`
+                        cursor-pointer p-3 rounded-lg border-2 transition-all
+                        ${selectedDepartments.includes(dept)
+                          ? 'border-primary bg-primary/10'
+                          : 'border-muted hover:border-primary/50'
+                        }
+                      `}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold">{dept}</span>
+                        <Checkbox
+                          checked={selectedDepartments.includes(dept)}
+                          onCheckedChange={() => toggleDepartment(dept)}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {selectedDepartments.length === 0 && (
+                  <p className="text-sm text-destructive">Please select at least one department</p>
+                )}
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="sections">Sections per Year</Label>
@@ -165,21 +213,13 @@ const TimetableGenerator = ({ onTimetableGenerated }: TimetableGeneratorProps) =
                 </div>
               </div>
               
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Departments (6)</Label>
-                <div className="flex flex-wrap gap-2">
-                  {departments.map(dept => (
-                    <Badge key={dept} variant="secondary">{dept}</Badge>
-                  ))}
-                </div>
-              </div>
-              
               <div className="flex flex-wrap gap-2">
+                <Badge variant="secondary">{selectedDepartments.length} Department{selectedDepartments.length !== 1 ? 's' : ''}</Badge>
                 <Badge variant="outline">{yearsPerDepartment} Years</Badge>
                 <Badge variant="outline">Sections: A-{String.fromCharCode(64 + sectionsPerYear)}</Badge>
                 <Badge variant="outline">Monday-Friday</Badge>
                 <Badge variant="outline">8 Periods/Day</Badge>
-                <Badge variant="secondary">Total Classes: {departments.length * yearsPerDepartment * sectionsPerYear}</Badge>
+                <Badge variant="secondary">Total Classes: {selectedDepartments.length * yearsPerDepartment * sectionsPerYear}</Badge>
               </div>
             </CardContent>
           </Card>
