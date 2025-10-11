@@ -18,23 +18,34 @@ function getTimeRange(period: number): string {
 }
 
 export function generateTimetable(input: GeneratorInput): TimetableData {
-  const { numClasses, subjects, daysPerWeek, periodsPerDay } = input;
+  const { departments, yearsPerDepartment, sectionsPerYear, subjects, daysPerWeek, periodsPerDay } = input;
   
   // Create a comprehensive schedule that fills all periods
   const classSchedules: ClassTimetable[] = [];
   const staffSchedules = new Map<string, TimeSlot[][]>();
 
-  // Initialize class schedules
-  for (let i = 0; i < numClasses; i++) {
-    const className = `Class ${String.fromCharCode(65 + i)}`;
-    const schedule: TimeSlot[][] = [];
-    
-    for (let day = 0; day < daysPerWeek; day++) {
-      schedule.push([]);
+  // Initialize class schedules for each department, year, and section
+  departments.forEach(dept => {
+    for (let year = 1; year <= yearsPerDepartment; year++) {
+      for (let sectionIndex = 0; sectionIndex < sectionsPerYear; sectionIndex++) {
+        const section = String.fromCharCode(65 + sectionIndex); // A, B, C, etc.
+        const className = `${dept} - Year ${year} - Section ${section}`;
+        const schedule: TimeSlot[][] = [];
+        
+        for (let day = 0; day < daysPerWeek; day++) {
+          schedule.push([]);
+        }
+        
+        classSchedules.push({ 
+          className, 
+          department: dept,
+          year,
+          section,
+          schedule 
+        });
+      }
     }
-    
-    classSchedules.push({ className, schedule });
-  }
+  });
 
   // Initialize staff schedules
   const allStaff = new Set<string>();
@@ -63,7 +74,7 @@ export function generateTimetable(input: GeneratorInput): TimetableData {
   }
 
   // For each class, generate a complete schedule
-  for (let classIndex = 0; classIndex < numClasses; classIndex++) {
+  for (let classIndex = 0; classIndex < classSchedules.length; classIndex++) {
     const classSchedule = classSchedules[classIndex];
     const periodsToFill: { day: number; period: number }[] = [];
     

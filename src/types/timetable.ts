@@ -21,6 +21,9 @@ export interface TimeSlot {
 
 export interface ClassTimetable {
   className: string;
+  department: string;
+  year: number;
+  section: string;
   schedule: TimeSlot[][];
 }
 
@@ -35,11 +38,12 @@ export interface TimetableData {
 }
 
 export interface GeneratorInput {
-  numClasses: number;
+  departments: string[];
+  yearsPerDepartment: number;
+  sectionsPerYear: number;
   subjects: Subject[];
   daysPerWeek: number;
   periodsPerDay: number;
   institutionName?: string;
-  department?: string;
   academicYear?: string;
 }

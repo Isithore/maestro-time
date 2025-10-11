@@ -19,7 +19,9 @@ const TimetableGenerator = ({ onTimetableGenerated }: TimetableGeneratorProps) =
   const navigate = useNavigate();
   const { toast } = useToast();
   
-  const [numClasses, setNumClasses] = useState(3);
+  const [departments] = useState(['CSE', 'IT', 'MECH', 'EEE', 'ECE', 'AIDS']);
+  const [yearsPerDepartment] = useState(4);
+  const [sectionsPerYear, setSectionsPerYear] = useState(1);
   const [subjects, setSubjects] = useState<Subject[]>([
     { id: '1', name: 'Mathematics', code: 'MATH101', staff: ['Mr. Smith'], isLab: false, duration: 1 },
     { id: '2', name: 'Physics', code: 'PHY101', staff: ['Dr. Johnson'], isLab: false, duration: 1 },
@@ -85,17 +87,10 @@ const TimetableGenerator = ({ onTimetableGenerated }: TimetableGeneratorProps) =
       return;
     }
 
-    if (numClasses < 1) {
-      toast({
-        title: "Error",
-        description: "Please enter a valid number of classes.",
-        variant: "destructive"
-      });
-      return;
-    }
-
     const input: GeneratorInput = {
-      numClasses,
+      departments,
+      yearsPerDepartment,
+      sectionsPerYear,
       subjects: validSubjects,
       daysPerWeek,
       periodsPerDay,
@@ -150,14 +145,14 @@ const TimetableGenerator = ({ onTimetableGenerated }: TimetableGeneratorProps) =
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="numClasses">Number of Classes</Label>
+                  <Label htmlFor="sections">Sections per Year</Label>
                   <Input
-                    id="numClasses"
+                    id="sections"
                     type="number"
                     min="1"
-                    max="26"
-                    value={numClasses}
-                    onChange={(e) => setNumClasses(parseInt(e.target.value) || 1)}
+                    max="10"
+                    value={sectionsPerYear}
+                    onChange={(e) => setSectionsPerYear(parseInt(e.target.value) || 1)}
                   />
                 </div>
                 <div className="space-y-2">
@@ -170,11 +165,21 @@ const TimetableGenerator = ({ onTimetableGenerated }: TimetableGeneratorProps) =
                 </div>
               </div>
               
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Departments (6)</Label>
+                <div className="flex flex-wrap gap-2">
+                  {departments.map(dept => (
+                    <Badge key={dept} variant="secondary">{dept}</Badge>
+                  ))}
+                </div>
+              </div>
+              
               <div className="flex flex-wrap gap-2">
-                <Badge variant="secondary">Classes: A-{String.fromCharCode(64 + numClasses)}</Badge>
+                <Badge variant="outline">{yearsPerDepartment} Years</Badge>
+                <Badge variant="outline">Sections: A-{String.fromCharCode(64 + sectionsPerYear)}</Badge>
                 <Badge variant="outline">Monday-Friday</Badge>
                 <Badge variant="outline">8 Periods/Day</Badge>
-                <Badge variant="outline">No Free Periods</Badge>
+                <Badge variant="secondary">Total Classes: {departments.length * yearsPerDepartment * sectionsPerYear}</Badge>
               </div>
             </CardContent>
           </Card>

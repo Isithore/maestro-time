@@ -101,7 +101,7 @@ const StudentTimetables = ({ timetableData }: StudentTimetablesProps) => {
                   <div>
                     <CardTitle className="text-2xl flex items-center gap-2 print:text-foreground">
                       <Calendar className="h-6 w-6 text-primary print:hidden" />
-                      {classData.className}
+                      {classData.department} - Year {classData.year} - Section {classData.section}
                     </CardTitle>
                     <p className="text-sm text-muted-foreground mt-1 print:text-gray-600">
                       Complete Weekly Schedule
